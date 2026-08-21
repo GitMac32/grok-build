@@ -11,6 +11,9 @@ pub(crate) mod handlers;
 pub mod init;
 pub mod model_providers;
 pub mod models;
+
+#[cfg(test)]
+mod model_providers_custom_test;
 pub mod mvp_agent;
 pub(crate) mod otel_gate;
 pub(crate) mod proxy;

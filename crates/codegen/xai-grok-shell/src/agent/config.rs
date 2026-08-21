@@ -3575,13 +3575,19 @@ pub(crate) fn resolve_model_list(
                 .api_base_url
                 .as_deref()
                 .is_some_and(|url| !crate::util::is_xai_api_bearer_url(url));
-        if let Some(pid) = model_override.model_provider.as_deref()
-            && entry.auth_provider.is_none()
+        // Custom (non-xAI) endpoints must never inherit the xAI session JWT,
+        // whether the model is wired through `[model_providers.*]` or a
+        // direct `[model.*] base_url`. A fail-closed stub classifies the
+        // model as BYOK so `resolve_credentials` does not fall through.
+        if entry.auth_provider.is_none()
+            && entry.own_credential().is_none()
             && session_bearer_unsafe
         {
-            entry.auth_provider = Some(crate::auth::AuthProviderRef::fail_closed(format!(
-                "model_provider:{pid} (fail-closed)"
-            )));
+            let name = match model_override.model_provider.as_deref() {
+                Some(pid) => format!("model_provider:{pid} (fail-closed)"),
+                None => format!("model:{key} (fail-closed)"),
+            };
+            entry.auth_provider = Some(crate::auth::AuthProviderRef::fail_closed(name));
         }
         tracing::debug!(
             model_key = %key,
